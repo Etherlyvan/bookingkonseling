@@ -39,20 +39,10 @@ fun BookingKonselingApp() {
     val authState by authViewModel.uiState.collectAsState()
     val navController = rememberNavController()
 
-    // PERBAIKAN: Handle auth state changes untuk auto navigation
-    LaunchedEffect(authState.isLoggedIn) {
-        if (!authState.isLoggedIn && !authState.isLoading) {
-            // User logged out, navigate to login
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true } // Clear entire back stack
-            }
-        }
-    }
-
-    // Determine start destination based on current auth state
+    // PERBAIKAN: Determine start destination berdasarkan auth status
     val startDestination = remember(authState.isLoggedIn) {
         if (authState.isLoggedIn) {
-            // Check if user is admin
+            // Jika sudah login, cek role user
             val currentUser = FirebaseAuth.getInstance().currentUser
             if (currentUser?.email?.contains("admin") == true ||
                 currentUser?.email?.endsWith("@admin.ub.ac.id") == true) {
@@ -61,11 +51,21 @@ fun BookingKonselingApp() {
                 Screen.Main.route
             }
         } else {
+            // PERBAIKAN: Jika belum login, selalu ke login page
             Screen.Login.route
         }
     }
 
-    // PERBAIKAN: Pass navController dan authViewModel ke Navigation
+    // PERBAIKAN: Handle auth state changes untuk auto navigation
+    LaunchedEffect(authState.isLoggedIn) {
+        if (!authState.isLoggedIn && !authState.isLoading) {
+            // User logged out atau belum login, navigate ke login
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true } // Clear entire back stack
+            }
+        }
+    }
+
     Navigation(
         navController = navController,
         startDestination = startDestination,

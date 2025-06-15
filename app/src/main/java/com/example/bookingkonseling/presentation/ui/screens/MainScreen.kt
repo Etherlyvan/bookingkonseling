@@ -18,6 +18,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.bookingkonseling.R
 import com.example.bookingkonseling.presentation.viewmodel.AuthViewModel
+import com.example.bookingkonseling.data.model.Booking
+import com.google.gson.Gson
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,7 +112,6 @@ fun MainScreen(
                         navController.navigate("create_booking")
                     },
                     onNavigateToHistory = {
-                        // PERBAIKAN: Navigasi ke tab history
                         navController.navigate("history") {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
@@ -123,7 +124,13 @@ fun MainScreen(
             }
 
             composable("history") {
-                BookingHistoryScreen()
+                BookingHistoryScreen(
+                    onNavigateToDetail = { booking ->
+                        // TAMBAHAN: Navigasi ke detail dengan pass booking data
+                        val bookingJson = Gson().toJson(booking)
+                        navController.navigate("booking_detail/$bookingJson")
+                    }
+                )
             }
 
             composable("profile") {
@@ -136,6 +143,34 @@ fun MainScreen(
                         navController.popBackStack()
                     }
                 )
+            }
+
+            // TAMBAHAN: Route untuk booking detail
+            composable("booking_detail/{bookingJson}") { backStackEntry ->
+                val bookingJson = backStackEntry.arguments?.getString("bookingJson")
+                val booking = try {
+                    Gson().fromJson(bookingJson, Booking::class.java)
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (booking != null) {
+                    BookingDetailScreen(
+                        booking = booking,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        },
+                        onCancel = {
+                            // Handle cancel booking
+                            navController.popBackStack()
+                        }
+                    )
+                } else {
+                    // Handle error - booking data tidak valid
+                    LaunchedEffect(Unit) {
+                        navController.popBackStack()
+                    }
+                }
             }
         }
     }

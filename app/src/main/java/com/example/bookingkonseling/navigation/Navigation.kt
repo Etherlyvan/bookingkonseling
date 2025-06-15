@@ -1,7 +1,13 @@
 // navigation/Navigation.kt
 package com.example.bookingkonseling.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,11 +22,24 @@ import kotlinx.coroutines.launch
 fun Navigation(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Login.route,
-    authViewModel: AuthViewModel // PERBAIKAN: Tambah parameter authViewModel
+    authViewModel: AuthViewModel
 ) {
     var userRole by remember { mutableStateOf<String?>(null) }
     val currentUser = FirebaseAuth.getInstance().currentUser
     val authState by authViewModel.uiState.collectAsState()
+
+    // PERBAIKAN: Tampilkan loading saat initial check
+    if (!authState.isInitialized) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = Color(0xFF1E3A5F)
+            )
+        }
+        return
+    }
 
     // Check user role
     LaunchedEffect(currentUser) {
@@ -41,18 +60,35 @@ fun Navigation(
         }
     }
 
-    // PERBAIKAN: Auto navigate to login when logged out
+    // PERBAIKAN: Auto navigate berdasarkan auth state
     LaunchedEffect(authState.isLoggedIn) {
-        if (!authState.isLoggedIn && !authState.isLoading) {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true }
+        if (authState.isLoggedIn) {
+            // User logged in, navigate to appropriate screen
+            val destination = if (userRole == "admin") {
+                Screen.AdminMain.route
+            } else {
+                Screen.Main.route
+            }
+
+            if (navController.currentDestination?.route != destination) {
+                navController.navigate(destination) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        } else if (authState.isInitialized) {
+            // User not logged in and initialization complete, ensure on login screen
+            if (navController.currentDestination?.route != Screen.Login.route &&
+                navController.currentDestination?.route != Screen.Register.route) {
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             }
         }
     }
 
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = Screen.Login.route // PERBAIKAN: Selalu mulai dari login
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
@@ -60,23 +96,9 @@ fun Navigation(
                     navController.navigate(Screen.Register.route)
                 },
                 onLoginSuccess = {
-                    try {
-                        val destination = if (userRole == "admin") {
-                            Screen.AdminMain.route
-                        } else {
-                            Screen.Main.route
-                        }
-                        navController.navigate(destination) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    } catch (e: Exception) {
-                        println("Navigation error after login: ${e.message}")
-                        navController.navigate(Screen.Main.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    }
+                    // Navigation akan ditangani oleh LaunchedEffect di atas
                 },
-                authViewModel = authViewModel // PERBAIKAN: Pass authViewModel
+                authViewModel = authViewModel
             )
         }
 
@@ -86,26 +108,26 @@ fun Navigation(
                     navController.popBackStack()
                 },
                 onRegisterSuccess = {
-                    try {
-                        navController.navigate(Screen.Main.route) {
-                            popUpTo(Screen.Register.route) { inclusive = true }
-                        }
-                    } catch (e: Exception) {
-                        println("Navigation error after register: ${e.message}")
-                    }
+                    // Navigation akan ditangani oleh LaunchedEffect di atas
                 },
-                authViewModel = authViewModel // PERBAIKAN: Pass authViewModel
+                authViewModel = authViewModel
             )
         }
 
         // Student Main Screen
         composable(Screen.Main.route) {
-            MainScreen(authViewModel = authViewModel) // PERBAIKAN: Pass authViewModel
+            // PERBAIKAN: Hanya tampilkan jika user sudah login
+            if (authState.isLoggedIn) {
+                MainScreen(authViewModel = authViewModel)
+            }
         }
 
         // Admin Main Screen
         composable(Screen.AdminMain.route) {
-            AdminMainScreen(authViewModel = authViewModel) // PERBAIKAN: Pass authViewModel
+            // PERBAIKAN: Hanya tampilkan jika user sudah login sebagai admin
+            if (authState.isLoggedIn) {
+                AdminMainScreen(authViewModel = authViewModel)
+            }
         }
     }
 }

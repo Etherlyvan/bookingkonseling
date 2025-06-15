@@ -52,13 +52,6 @@ fun RegisterScreen(
         return nim.all { it.isDigit() } && nim.length >= 10
     }
 
-    // Jika register berhasil, navigasi ke home
-    LaunchedEffect(uiState.isLoggedIn) {
-        if (uiState.isLoggedIn) {
-            onRegisterSuccess()
-        }
-    }
-
     // Update validasi saat input berubah
     LaunchedEffect(email) {
         isEmailValid = email.isEmpty() || isValidEmail(email)

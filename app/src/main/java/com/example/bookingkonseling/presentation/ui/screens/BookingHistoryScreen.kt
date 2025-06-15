@@ -2,6 +2,7 @@
 package com.example.bookingkonseling.presentation.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,7 +27,9 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingHistoryScreen() {
+fun BookingHistoryScreen(
+    onNavigateToDetail: (Booking) -> Unit = {} // TAMBAHAN: Parameter untuk navigasi ke detail
+) {
     val context = LocalContext.current
     val viewModel = remember { BookingViewModel(context) }
     val uiState by viewModel.uiState.collectAsState()
@@ -57,7 +60,6 @@ fun BookingHistoryScreen() {
                 CircularProgressIndicator(color = Color(0xFF1E3A5F))
             }
         } else if (uiState.bookings.isEmpty()) {
-            // Empty State (Gambar Keempat)
             EmptyBookingState()
         } else {
             LazyColumn(
@@ -72,6 +74,9 @@ fun BookingHistoryScreen() {
                         booking = booking,
                         onCancel = {
                             viewModel.cancelBooking(booking.id)
+                        },
+                        onClick = { // TAMBAHAN: Parameter onClick
+                            onNavigateToDetail(booking)
                         }
                     )
                 }
@@ -83,7 +88,8 @@ fun BookingHistoryScreen() {
 @Composable
 fun BookingHistoryCard(
     booking: Booking,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onClick: () -> Unit = {} // TAMBAHAN: Parameter onClick
 ) {
     val formattedDate = try {
         val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale("id", "ID"))
@@ -93,10 +99,12 @@ fun BookingHistoryCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }, // TAMBAHAN: Clickable modifier
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFE8D5FF) // Light purple background
+            containerColor = Color(0xFFE8D5FF)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -112,7 +120,7 @@ fun BookingHistoryCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = "TV PS 1", // Atau gunakan booking.sesi
+                    text = "TV PS 1",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black
@@ -134,7 +142,7 @@ fun BookingHistoryCard(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF7B2CBF)), // Purple background
+                        .background(Color(0xFF7B2CBF)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -166,7 +174,10 @@ fun BookingHistoryCard(
                 // Cancel Button
                 if (booking.status == "Pending" || booking.status == "Ongoing") {
                     Button(
-                        onClick = onCancel,
+                        onClick = {
+                            onCancel()
+                            // Mencegah navigasi ke detail saat tombol cancel diklik
+                        },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFE57373)
                         ),
@@ -195,7 +206,6 @@ fun EmptyBookingState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Empty state illustration placeholder
         Box(
             modifier = Modifier
                 .size(200.dp)
