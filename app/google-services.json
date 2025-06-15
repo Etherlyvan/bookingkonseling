@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "39263550743",
+    "project_id": "test-project-39627",
+    "storage_bucket": "test-project-39627.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:39263550743:android:bb1788261cccb1ee95cb52",
+        "android_client_info": {
+          "package_name": "com.example.bookingkonseling"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMe55HnjyVaE4255qEFwJgBx2XwlPtwTo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:39263550743:android:95996364536d461495cb52",
+        "android_client_info": {
+          "package_name": "com.example.contactappkel1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMe55HnjyVaE4255qEFwJgBx2XwlPtwTo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
