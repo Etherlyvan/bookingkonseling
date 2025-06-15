@@ -12,6 +12,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,8 +46,12 @@ fun CreateBookingScreen(
     var selectedSesi by remember { mutableStateOf("") }
     var ktmUri by remember { mutableStateOf<Uri?>(null) }
 
-    // State untuk dropdown (hanya sesi yang menggunakan dropdown)
+    // State untuk dropdown
     var expandedSesi by remember { mutableStateOf(false) }
+
+    // State untuk upload status
+    var isUploading by remember { mutableStateOf(false) }
+    var uploadProgress by remember { mutableStateOf("") }
 
     val sesiOptions = listOf(
         "Sesi 1 (10.00 - 11.00)",
@@ -59,10 +65,21 @@ fun CreateBookingScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         ktmUri = uri
+        if (uri != null) {
+            uploadProgress = "File dipilih: ${uri.lastPathSegment}"
+        }
     }
 
     // Observe UI state
     val uiState by viewModel.uiState.collectAsState()
+
+    // Handle upload state
+    LaunchedEffect(uiState.isLoading) {
+        isUploading = uiState.isLoading
+        if (uiState.isLoading) {
+            uploadProgress = "Mengupload file dan menyimpan data..."
+        }
+    }
 
     // Jika berhasil create booking, kembali
     LaunchedEffect(uiState.isSuccess) {
@@ -84,7 +101,10 @@ fun CreateBookingScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        enabled = !isUploading
+                    ) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -144,39 +164,42 @@ fun CreateBookingScreen(
                     value = nama,
                     onValueChange = { nama = it },
                     label = "Nama Mahasiswa",
-                    placeholder = "Masukkan nama lengkap"
+                    placeholder = "Masukkan nama lengkap",
+                    enabled = !isUploading
                 )
 
                 CustomTextField(
                     value = nim,
                     onValueChange = { nim = it },
                     label = "NIM Mahasiswa",
-                    placeholder = "Masukkan NIM"
+                    placeholder = "Masukkan NIM",
+                    enabled = !isUploading
                 )
 
                 CustomTextField(
                     value = prodi,
                     onValueChange = { prodi = it },
                     label = "Prodi Mahasiswa",
-                    placeholder = "Masukkan nama prodi"
+                    placeholder = "Masukkan nama prodi",
+                    enabled = !isUploading
                 )
 
                 CustomTextField(
                     value = nomorHP,
                     onValueChange = { nomorHP = it },
                     label = "Nomor HP",
-                    placeholder = "Masukkan nomor HP"
+                    placeholder = "Masukkan nomor HP",
+                    enabled = !isUploading
                 )
 
-                // PERBAIKAN: Tanggal menggunakan TextField biasa, bukan dropdown
                 CustomTextField(
                     value = tanggalString,
                     onValueChange = { tanggalString = it },
                     label = "Pilih Tanggal",
-                    placeholder = "Senin, 10/9/2025"
+                    placeholder = "Senin, 10/9/2025",
+                    enabled = !isUploading
                 )
 
-                // PERBAIKAN: Dropdown Sesi yang bisa ditutup
                 CustomDropdown(
                     value = selectedSesi,
                     onValueChange = { selectedSesi = it },
@@ -184,36 +207,81 @@ fun CreateBookingScreen(
                     options = sesiOptions,
                     expanded = expandedSesi,
                     onExpandedChange = { expandedSesi = it },
-                    placeholder = "Sesi 1 (10.00 - 11.00)"
+                    placeholder = "Sesi 1 (10.00 - 11.00)",
+                    enabled = !isUploading
                 )
 
-                // Upload KTM Button
-                OutlinedButton(
-                    onClick = { imagePickerLauncher.launch("image/*") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
-                        width = 1.dp,
-                        brush = androidx.compose.ui.graphics.SolidColor(Color.White)
-                    )
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_upload),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                // Upload KTM Section
+                Column {
                     Text(
-                        if (ktmUri != null) "✓ KTM Terupload" else "Unggah KTM",
+                        text = "Upload KTM *",
                         color = Color.White,
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    OutlinedButton(
+                        onClick = {
+                            if (!isUploading) {
+                                imagePickerLauncher.launch("image/*")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = if (ktmUri != null) Color(0xFF4CAF50) else Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            width = 1.dp,
+                            brush = androidx.compose.ui.graphics.SolidColor(
+                                if (ktmUri != null) Color(0xFF4CAF50) else Color.White
+                            )
+                        ),
+                        enabled = !isUploading
+                    ) {
+                        if (ktmUri != null) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_upload),
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (ktmUri != null) "✓ KTM Terpilih" else "Pilih File KTM",
+                            color = if (ktmUri != null) Color(0xFF4CAF50) else Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    // Upload progress atau info file
+                    if (uploadProgress.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uploadProgress,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // File requirements info
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "• Format: JPG, PNG, GIF\n• Ukuran maksimal: 5MB\n• Pastikan foto KTM jelas dan terbaca",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 12.sp
                     )
                 }
 
@@ -243,7 +311,7 @@ fun CreateBookingScreen(
                         containerColor = Color(0xFFFF9800)
                     ),
                     shape = RoundedCornerShape(8.dp),
-                    enabled = !uiState.isLoading &&
+                    enabled = !isUploading &&
                             nama.isNotEmpty() &&
                             nim.isNotEmpty() &&
                             prodi.isNotEmpty() &&
@@ -251,15 +319,26 @@ fun CreateBookingScreen(
                             tanggalString.isNotEmpty() &&
                             selectedSesi.isNotEmpty()
                 ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
+                    if (isUploading) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Menyimpan...",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
                     } else {
                         Text(
-                            "Kirim",
+                            "Kirim Reservasi",
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             fontSize = 16.sp
@@ -276,12 +355,23 @@ fun CreateBookingScreen(
                         ),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text(
-                            text = error,
-                            color = Color(0xFFFFAB91),
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFFAB91),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = error,
+                                color = Color(0xFFFFAB91),
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }
@@ -295,7 +385,8 @@ fun CustomTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    placeholder: String
+    placeholder: String,
+    enabled: Boolean = true
 ) {
     Column {
         Text(
@@ -320,13 +411,17 @@ fun CustomTextField(
             colors = TextFieldDefaults.colors(
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White,
+                disabledTextColor = Color.White.copy(alpha = 0.6f),
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.White,
                 unfocusedIndicatorColor = Color(0xFF60A5FA),
+                disabledIndicatorColor = Color(0xFF60A5FA).copy(alpha = 0.6f),
                 cursorColor = Color.White
             ),
-            singleLine = true
+            singleLine = true,
+            enabled = enabled
         )
     }
 }
@@ -340,7 +435,8 @@ fun CustomDropdown(
     options: List<String>,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    placeholder: String
+    placeholder: String,
+    enabled: Boolean = true
 ) {
     Column {
         Text(
@@ -351,40 +447,46 @@ fun CustomDropdown(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // PERBAIKAN: Custom dropdown yang bisa ditutup
         Box {
             OutlinedTextField(
                 value = value.ifEmpty { placeholder },
                 onValueChange = { },
                 readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = if (value.isEmpty()) Color(0xFF60A5FA) else Color.White,
                     unfocusedTextColor = if (value.isEmpty()) Color(0xFF60A5FA) else Color.White,
+                    disabledTextColor = Color.White.copy(alpha = 0.6f),
                     focusedBorderColor = Color.White,
                     unfocusedBorderColor = Color(0xFF60A5FA),
+                    disabledBorderColor = Color(0xFF60A5FA).copy(alpha = 0.6f),
                     focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent
                 ),
                 shape = RoundedCornerShape(8.dp),
                 trailingIcon = {
                     IconButton(
-                        onClick = { onExpandedChange(!expanded) }
+                        onClick = {
+                            if (enabled) {
+                                onExpandedChange(!expanded)
+                            }
+                        },
+                        enabled = enabled
                     ) {
                         Icon(
-                            imageVector = if (expanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropDown,
+                            imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = if (expanded) "Close dropdown" else "Open dropdown",
-                            tint = Color.White
+                            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.6f)
                         )
                     }
-                }
+                },
+                enabled = enabled
             )
 
-            // PERBAIKAN: Dropdown menu yang bisa ditutup
             DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { onExpandedChange(false) }, // Tutup dropdown saat klik di luar
+                expanded = expanded && enabled,
+                onDismissRequest = { onExpandedChange(false) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 options.forEach { option ->
@@ -397,7 +499,7 @@ fun CustomDropdown(
                         },
                         onClick = {
                             onValueChange(option)
-                            onExpandedChange(false) // Tutup dropdown setelah memilih
+                            onExpandedChange(false)
                         }
                     )
                 }
