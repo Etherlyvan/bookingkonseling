@@ -28,7 +28,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingHistoryScreen(
-    onNavigateToDetail: (Booking) -> Unit = {} // TAMBAHAN: Parameter untuk navigasi ke detail
+    onNavigateToDetail: (Booking) -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel = remember { BookingViewModel(context) }
@@ -75,7 +75,8 @@ fun BookingHistoryScreen(
                         onCancel = {
                             viewModel.cancelBooking(booking.id)
                         },
-                        onClick = { // TAMBAHAN: Parameter onClick
+                        onClick = {
+                            // PERBAIKAN: Pastikan onClick dipanggil dengan benar
                             onNavigateToDetail(booking)
                         }
                     )
@@ -89,7 +90,7 @@ fun BookingHistoryScreen(
 fun BookingHistoryCard(
     booking: Booking,
     onCancel: () -> Unit,
-    onClick: () -> Unit = {} // TAMBAHAN: Parameter onClick
+    onClick: () -> Unit = {}
 ) {
     val formattedDate = try {
         val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale("id", "ID"))
@@ -101,7 +102,10 @@ fun BookingHistoryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }, // TAMBAHAN: Clickable modifier
+            .clickable {
+                // PERBAIKAN: Pastikan onClick dipanggil
+                onClick()
+            },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFE8D5FF)
@@ -120,7 +124,7 @@ fun BookingHistoryCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = "TV PS 1",
+                    text = "Konseling",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.Black
@@ -157,7 +161,7 @@ fun BookingHistoryCard(
 
                 Column {
                     Text(
-                        text = booking.konselor,
+                        text = booking.konselor.ifEmpty { "Belum ditentukan" },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -167,16 +171,29 @@ fun BookingHistoryCard(
                         fontSize = 14.sp,
                         color = Color(0xFF666666)
                     )
+                    // PERBAIKAN: Tambahkan status
+                    Text(
+                        text = "Status: ${booking.status}",
+                        fontSize = 12.sp,
+                        color = when(booking.status) {
+                            "Pending" -> Color(0xFFFF9800)
+                            "Ongoing" -> Color(0xFF4CAF50)
+                            "Completed" -> Color(0xFF2196F3)
+                            "Cancelled" -> Color(0xFFF44336)
+                            else -> Color.Gray
+                        },
+                        fontWeight = FontWeight.Medium
+                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Cancel Button
+                // Cancel Button - hanya tampil jika status bisa dibatalkan
                 if (booking.status == "Pending" || booking.status == "Ongoing") {
                     Button(
                         onClick = {
+                            // PERBAIKAN: Prevent event bubbling
                             onCancel()
-                            // Mencegah navigasi ke detail saat tombol cancel diklik
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFE57373)

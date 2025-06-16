@@ -16,10 +16,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.example.bookingkonseling.R
 import com.example.bookingkonseling.presentation.viewmodel.AuthViewModel
 import com.example.bookingkonseling.data.model.Booking
 import com.google.gson.Gson
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +32,9 @@ fun MainScreen(
     authViewModel: AuthViewModel
 ) {
     val navController = rememberNavController()
+
+    // PERBAIKAN: State untuk menyimpan booking yang dipilih
+    var selectedBooking by remember { mutableStateOf<Booking?>(null) }
 
     Scaffold(
         bottomBar = {
@@ -126,9 +134,9 @@ fun MainScreen(
             composable("history") {
                 BookingHistoryScreen(
                     onNavigateToDetail = { booking ->
-                        // TAMBAHAN: Navigasi ke detail dengan pass booking data
-                        val bookingJson = Gson().toJson(booking)
-                        navController.navigate("booking_detail/$bookingJson")
+                        // PERBAIKAN: Simpan booking di state dan navigate ke detail
+                        selectedBooking = booking
+                        navController.navigate("booking_detail")
                     }
                 )
             }
@@ -145,28 +153,22 @@ fun MainScreen(
                 )
             }
 
-            // TAMBAHAN: Route untuk booking detail
-            composable("booking_detail/{bookingJson}") { backStackEntry ->
-                val bookingJson = backStackEntry.arguments?.getString("bookingJson")
-                val booking = try {
-                    Gson().fromJson(bookingJson, Booking::class.java)
-                } catch (e: Exception) {
-                    null
-                }
-
-                if (booking != null) {
+            // PERBAIKAN: Route booking detail tanpa parameter
+            composable("booking_detail") {
+                selectedBooking?.let { booking ->
                     BookingDetailScreen(
                         booking = booking,
                         onNavigateBack = {
+                            selectedBooking = null // Clear state
                             navController.popBackStack()
                         },
                         onCancel = {
-                            // Handle cancel booking
+                            selectedBooking = null // Clear state
                             navController.popBackStack()
                         }
                     )
-                } else {
-                    // Handle error - booking data tidak valid
+                } ?: run {
+                    // PERBAIKAN: Handle jika booking null, kembali ke history
                     LaunchedEffect(Unit) {
                         navController.popBackStack()
                     }
