@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import com.example.bookingkonseling.R
 import com.example.bookingkonseling.presentation.viewmodel.AuthViewModel
 
-// presentation/ui/screens/LoginScreen.kt (bagian yang perlu diubah)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
@@ -33,8 +32,12 @@ fun LoginScreen(
     // Observe UI state dari authViewModel yang di-pass
     val uiState by authViewModel.uiState.collectAsState()
 
-    // PERBAIKAN: Hapus LaunchedEffect untuk auto navigation
-    // Navigation akan ditangani oleh Navigation.kt
+    // Jika login berhasil, navigasi ke home
+    LaunchedEffect(uiState.isLoggedIn) {
+        if (uiState.isLoggedIn) {
+            onLoginSuccess()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -43,16 +46,14 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // ... rest of the UI code remains the same ...
-
-        // Logo aplikasi
+        // PERUBAHAN: Logo aplikasi menggunakan logo.png
         Image(
-            painter = painterResource(id = R.drawable.logo),
+            painter = painterResource(id = R.drawable.logo), // Menggunakan logo.png
             contentDescription = "Logo Aplikasi",
             modifier = Modifier
                 .size(120.dp)
                 .padding(8.dp),
-            contentScale = ContentScale.Fit
+            contentScale = ContentScale.Fit // Menjaga aspek rasio logo
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -77,6 +78,7 @@ fun LoginScreen(
             value = email,
             onValueChange = {
                 email = it
+                // Clear error when user starts typing
                 if (uiState.errorMessage != null) {
                     authViewModel.clearError()
                 }
@@ -97,6 +99,7 @@ fun LoginScreen(
             value = password,
             onValueChange = {
                 password = it
+                // Clear error when user starts typing
                 if (uiState.errorMessage != null) {
                     authViewModel.clearError()
                 }
@@ -162,7 +165,7 @@ fun LoginScreen(
             )
         }
 
-        // Error message
+        // Tampilkan error jika ada
         uiState.errorMessage?.let { error ->
             Spacer(modifier = Modifier.height(16.dp))
             Card(
